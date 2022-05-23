@@ -37,13 +37,12 @@ class OracleOperation:
 		my_cursor_weekc = self.connection_weekc.cursor()
 		print("connection WEEKC.version: ", self.connection_weekc.version)
 
-
 	def flog(self, loginfo):
 		with open("U:\FME_LIVE\FULL\LOGS\LPIS_CLEAN_LOG.txt", 'a') as f:
 		#with open("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/LOGS/LPIS_CLEAN_LOG.txt", 'a') as f: 				# in geo4
-			strusername = getpass.getuser()
-			CurrDate = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-			f.write(CurrDate + " | " + strusername + " | " + loginfo + "\n")
+			username = getpass.getuser()
+			curr_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+			f.write(curr_date + " | " + username + " | " + loginfo + "\n")
 
 			f.close()
 
@@ -63,36 +62,36 @@ class OracleOperation:
 	def fmerun(self, path):
 		# cmd = 'cmd.exe d:/start.bat'
 		p = subprocess.Popen("cmd.exe /c" + path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		curline = p.stdout.readline()
-		while (curline != b''):
-			#print(curline)
-			curline = p.stdout.readline()
+		curr_line = p.stdout.readline()
+		while curr_line != b'':
+			# print(curr_line)
+			curr_line = p.stdout.readline()
 		p.wait()
 		print(p.returncode)
 
 	def open_oracle_conn(self):
-		ConStr2Orcl = cx_Oracle.connect(config_geo3_transform.username, config_geo3_transform.password, config_geo3_transform.dsn, encoding=config_geo3_transform.encoding)
-		return ConStr2Orcl
+		con_str_22 = cx_Oracle.connect(config_geo3_transform.username, config_geo3_transform.password, config_geo3_transform.dsn, encoding=config_geo3_transform.encoding)
+		return con_str_22
 
 	def open_oracle_conn_cdtc(self):
-		ConStr2OrclCDTC = cx_Oracle.connect(config_CDTC.username,config_CDTC.password,
-											config_CDTC.dsn,encoding=config_CDTC.encoding)
-		return ConStr2OrclCDTC
+		con_str_22_cdtc = cx_Oracle.connect(config_CDTC.username, config_CDTC.password,
+											config_CDTC.dsn, encoding=config_CDTC.encoding)
+		return con_str_22_cdtc
 
 	def open_oracle_conn_poc(self):
-		ConStr2OrclPOC = cx_Oracle.connect(config_POC.username, config_POC.password,
-										config_POC.dsn,encoding=config_POC.encoding)
-		return ConStr2OrclPOC
+		con_str_22_poc = cx_Oracle.connect(config_POC.username, config_POC.password,
+										config_POC.dsn, encoding=config_POC.encoding)
+		return con_str_22_poc
 
 	def open_oracle_conn_arch(self):
-		ConStr2OrclARCH = cx_Oracle.connect(config_ARCH.username, config_ARCH.password,
+		con_str_22_arch = cx_Oracle.connect(config_ARCH.username, config_ARCH.password,
 											config_ARCH.dsn, encoding=config_ARCH.encoding)
-		return ConStr2OrclARCH
+		return con_str_22_arch
 
 	def open_oracle_conn_weekc(self):
-		ConStr2OrclWEEKC = cx_Oracle.connect(config_WEEKC.username, config_WEEKC.password,
+		con_str_22_weekc = cx_Oracle.connect(config_WEEKC.username, config_WEEKC.password,
 											 config_WEEKC.dsn, encoding=config_WEEKC.encoding)
-		return ConStr2OrclWEEKC
+		return con_str_22_weekc
 
 	def select_oracle(self, sqlstr, connection):
 		mycursor = connection.cursor()
@@ -113,40 +112,40 @@ class OracleOperation:
 		print("Update succesful")
 
 	def create_county_shape(self):
-		ArrayIndex = 1
-		DissType = 6
-		Arraylen = len(cc.arrayc)
-		addToAllCountiesTable = True
+		array_index = 1
+		diss_type = 6
+		array_len = len(cc.arrayc)
+		add_to_all_counties_table = True
 		for i in cc.arrayc:
-			if ArrayIndex == 1:
+			if array_index == 1:
 				self.update_oracle("TRUNCATE TABLE POC_TOWNLANDS_CURR_DIS_DEL", self.connection_cdtc)
 				self.update_oracle("TRUNCATE TABLE POC_TOWNLANDS_CURR_DIS", self.connection_cdtc)
 				self.update_oracle("TRUNCATE TABLE POC_TOWNLANDS_CURR", self.connection_cdtc)
 				self.update_oracle("TRUNCATE TABLE POC_REAL_TOWNLANDS_CURR", self.connection_cdtc)
 
-			global County
-			County = i
+			# global County
+			countyname = i
 			self.update_oracle("TRUNCATE TABLE POC_CURR_COUNTY_RUN", self.connection_cdtc)
-			self.update_oracle("INSERT INTO POC_CURR_COUNTY_RUN (COUNTY_ID) VALUES ('{}')".format(County), self.connection_cdtc)
+			self.update_oracle("INSERT INTO POC_CURR_COUNTY_RUN (COUNTY_ID) VALUES ('{}')".format(countyname), self.connection_cdtc)
 			print("90")
-			if County == 'O':
-				DissType = 5
+			if countyname == 'O':
+				diss_type = 5
 			else:
-				DissType = 6
+				diss_type = 6
 
-			self.create_townlands_from_weekc("SF_TEMP", "POC_TOWNLANDS_CURR", DissType)
+			self.create_townlands_from_weekc("SF_TEMP", "POC_TOWNLANDS_CURR", diss_type, countyname)
 			print("97")
-			self.create_townlands_from_weekc("SF_TEMP", "POC_REAL_TOWNLANDS_CURR", 5)
+			self.create_townlands_from_weekc("SF_TEMP", "POC_REAL_TOWNLANDS_CURR", 5, countyname)
 
 			self.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/1_DISSOLVE_TOWNLANDS_RERUN.bat")
 			self.flog("Run 1_DISSOLVE_TOWNLANDS_RERUN.bat")
 
-			if Arraylen == ArrayIndex:
-				addToAllCountiesTable = False
+			if array_len == array_index:
+				add_to_all_counties_table = False
 
-			self.create_ded_dis_for_each_del_county(County, "POC_TOWNLANDS_CURR_DIS_", addToAllCountiesTable)
+			self.create_ded_dis_for_each_del_county(countyname, "POC_TOWNLANDS_CURR_DIS_", add_to_all_counties_table)
 
-			ArrayIndex += 1
+			array_index += 1
 
 		self.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/1_DISSOLVE_TOWNLANDS_RERUN_SHP.bat")
 		self.flog("Run 1_DISSOLVE_TOWNLANDS_RERUN_SHP.bat")
@@ -158,75 +157,73 @@ class OracleOperation:
 		except:
 			self.flog("SF_TEMP not exist")
 
-	def create_townlands_from_weekc(self, varTab, TwnTabCreate, DissolveType):
-		print("111")
-		#db.updateOracle("DROP TABLE {}".format(varTab), connection_WEEKC)
-		print("112")
-		print("115")
-		str2 = '"'
-		str1 = "CREATE TABLE {} AS SELECT SPF_FEATURE_ID, SPF_FEATURE_LABEL, SPF_SPT_TYPE_ID, CREATE_DATE, UPDATE_DATE, START_DATE, END_DATE, GEOM, SPF_VER_NUM, SPF_AUDIT_ACTION, SPF_AUDIT_CREATE_DATE, SPF_AUDIT_CREATE_USER, SPF_AUDIT_DATE, SPF_AUDIT_USER, SPF_AUDIT_LOCATION, LABEL FROM (SELECT SUF.*, DBMS_LOB.SUBSTR(REPLACE(TRIM(REGEXP_SUBSTR (REGEXP_SUBSTR(SPF_FEATURE_ATTRIBUTES, '[^,]+', 1, 2), '[^:]+', 1, 2)),'{}'), 4000,1) AS LABEL FROM TDLP_SUPER_FEATURE SUF  WHERE SPF_SPT_TYPE_ID = {} AND END_DATE > sysdate) A WHERE SUBSTR(A.LABEL,1,1) = '{}'".format(
-			varTab, str2, DissolveType, County)
-		print(str1)
-		self.update_oracle(str1, self.connection_weekc)
-		self.flog("CREATE TABLE " + varTab)
-		print("120")
+	def create_townlands_from_weekc(self, tablename, twn_tab_create, dissolve_type, county):
+		str1_1 = '"'
+		str1 = "CREATE TABLE {} AS SELECT SPF_FEATURE_ID, SPF_FEATURE_LABEL, SPF_SPT_TYPE_ID, CREATE_DATE, UPDATE_DATE, START_DATE, " \
+			   "END_DATE, GEOM, SPF_VER_NUM, SPF_AUDIT_ACTION, SPF_AUDIT_CREATE_DATE, SPF_AUDIT_CREATE_USER, SPF_AUDIT_DATE, SPF_AUDIT_USER, " \
+			   "SPF_AUDIT_LOCATION, LABEL FROM (SELECT SUF.*, DBMS_LOB.SUBSTR(REPLACE(TRIM(REGEXP_SUBSTR (REGEXP_SUBSTR(SPF_FEATURE_ATTRIBUTES, " \
+			   "'[^,]+', 1, 2), '[^:]+', 1, 2)),'{}'), 4000,1) AS LABEL FROM TDLP_SUPER_FEATURE SUF  WHERE SPF_SPT_TYPE_ID = {} AND END_DATE > sysdate) " \
+			   "A WHERE SUBSTR(A.LABEL,1,1) = '{}'".format(tablename, str1_1, dissolve_type, county)
+		str1log = "CREATE TABLE {}".format(tablename)
 
-		DelMeta = "delete from USER_SDO_GEOM_METADATA where table_name = '{}'".format(varTab)
-		self.update_oracle(DelMeta, self.connection_weekc)
-		Meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
-			varTab)
-		self.update_oracle(Meta, self.connection_weekc)
-		self.flog("CREATE META " + varTab)
-		print("125")
-		Spatialindex = "CREATE INDEX SPX_{} ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(
-			varTab, varTab)
-		self.update_oracle(Spatialindex, self.connection_weekc)
-		self.flog("CREATE INDEX SPX " + varTab)
+		v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  " \
+				 "MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(tablename)
+		v_metalog = "CREATE META {}".format(tablename)
 
-		###--------------------------------------------
-		str1 = "INSERT INTO {} SELECT * FROM SF_TEMP@LPIS_VECTOR_WEEKC".format(TwnTabCreate)
-		self.update_oracle(str1, self.connection_cdtc)
-		self.flog("INSERT INTO TABLE " + varTab)
-		print("134")
+		spatial_index = "CREATE INDEX SPX_{} ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(
+			tablename, tablename)
+		spatial_indexlog = "CREATE INDEX SPX ON {}".format(tablename)
 
-		DelMeta = "delete from USER_SDO_GEOM_METADATA where table_name = '{}'".format(TwnTabCreate)
-		self.update_oracle(DelMeta, self.connection_cdtc)
-		Meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
-			TwnTabCreate)
-		self.update_oracle(Meta, self.connection_cdtc)
-		self.flog("CREATE META " + varTab)
-		print("144")
+		str_dict = {str1: str1log, v_meta: v_metalog, spatial_index: spatial_indexlog}
+		for i in str_dict.keys():
+			try:
+				self.update_oracle(i, self.connection_weekc)
+				self.flog(str(str_dict[i]))
+			except Exception as e:
+				print(e)
+				self.flog(" ****************  Error: {} ****************".format(str(str_dict[i])))
+				pass
 
-		delindex = "DROP INDEX SPX_{}".format(TwnTabCreate)
-		self.update_oracle(delindex, self.connection_cdtc)
-		Spatialindex = "CREATE INDEX SPX_{} ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(TwnTabCreate, TwnTabCreate)
-		self.update_oracle(Spatialindex, self.connection_cdtc)
-		self.flog("CREATE INDEX SPX " + varTab)
-		print("148")
-		self.update_oracle("DROP TABLE {} PURGE".format(varTab), self.connection_weekc)
-		self.flog("DROP TABLE " + varTab)
-		print("151")
+		str1 = "INSERT INTO {} SELECT * FROM SF_TEMP@LPIS_VECTOR_WEEKC".format(twn_tab_create)
+		str1log = "INSERT INTO TABLE {}".format(twn_tab_create)
+		v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  " \
+				 "MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(twn_tab_create)
+		v_metalog = "CREATE META {}".format(twn_tab_create)
+		spatial_index = "CREATE INDEX SPX_{} ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(
+			twn_tab_create, twn_tab_create)
+		spatial_indexlog = "CREATE INDEX SPX ON {}".format(twn_tab_create)
+		str_dict2 = {str1: str1log, v_meta: v_metalog, spatial_index: spatial_indexlog}
 
-	def create_ded_dis_for_each_del_county(self, CountyDis, tableName, addcounty):
-		twntabcreate = tableName + CountyDis
+		for i in str_dict2.keys():
+			try:
+				self.update_oracle(i, self.connection_cdtc)
+				self.flog(str(str_dict2[i]))
+			except Exception as e:
+				print(e)
+				self.flog(" ****************  Error: {} ****************".format(str(str_dict2[i])))
+				pass
+
+		self.update_oracle("DROP TABLE {} PURGE".format(tablename), self.connection_weekc)
+		self.flog("DROP TABLE " + tablename)
+
+	def create_ded_dis_for_each_del_county(self, county_dis, table_name, addcounty):
+		twntabcreate = table_name + county_dis
 		try:
-			#Drop townlands local table
+			# Drop townlands local table
 			print("171")
 			self.update_oracle("DROP TABLE " + twntabcreate, self.connection_cdtc)
 			self.flog("DROP TABLE {}".format(twntabcreate))
 
 		finally:
-			print("176")
-			#create local townlands table
 			str1 = "CREATE TABLE " + twntabcreate + " AS SELECT * FROM POC_TOWNLANDS_CURR_DIS "
-			self.update_oracle(str1, self.connection_cdtc)
+			self.update_oracle(str1, self.connection_cdtc)														# create local townlands table
 			self.flog("CREATE TABLE " + twntabcreate)
 
-			DelMeta = "delete from USER_SDO_GEOM_METADATA where table_name = '{}'".format(twntabcreate)
-			self.update_oracle(DelMeta, self.connection_cdtc)
-			Meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
+			del_meta = "delete from USER_SDO_GEOM_METADATA where table_name = '{}'".format(twntabcreate)
+			self.update_oracle(del_meta, self.connection_cdtc)
+			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
 				twntabcreate)
-			self.update_oracle(Meta, self.connection_cdtc)
+			self.update_oracle(v_meta, self.connection_cdtc)
 			self.flog("CREATE META " + twntabcreate)
 			try:
 				Spatialindex = "CREATE INDEX SPX_{} ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(
@@ -250,9 +247,9 @@ class OracleOperation:
 			self.update_oracle(str1, self.connection_cdtc)
 			self.flog("CREATE TABLE {}".format(tablename))
 
-			Meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
+			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
 				tablename)
-			#db.updateOracle(Meta, connection_CDTC)
+			# db.updateOracle(v_meta, connection_CDTC)
 			self.flog("CREATE META " + tablename)
 
 			Spatialindex = "CREATE INDEX SPX_POC_PROG_PARC_NEW_DEL ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(tablename)
@@ -315,22 +312,22 @@ class OracleOperation:
 		except Exception as e:
 			self.flog("ERR - create Local EXCL POC Table: {}".format(str(e)))
 
-	def backup_del(self, vCurrCounty, CurrDate,dictCounty):
+	def backup_del(self, curr_county, curr_date, dictCounty):
 		try:
-			currcountyname = dictCounty[vCurrCounty]
-			str1 = "CREATE TABLE C##LPIS_ARCHIVE.PPPN_DEL_{}_{} TABLESPACE IMAGERY_UPLOAD AS SELECT * FROM C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL".format(currcountyname, CurrDate)
+			currcountyname = dictCounty[curr_county]
+			str1 = "CREATE TABLE C##LPIS_ARCHIVE.PPPN_DEL_{}_{} TABLESPACE IMAGERY_UPLOAD AS SELECT * FROM C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL".format(currcountyname, curr_date)
 			self.update_oracle(str1, self.connection_arch)
-			self.flog("CREATE PPPN_DEL_{}_{}".format(currcountyname, CurrDate))
+			self.flog("CREATE PPPN_DEL_{}_{}".format(currcountyname, curr_date))
 		except Exception as e:
 			self.flog("ERR - create POC PARC backup: {}".format(str(e)))
 			print("ERR - create POC PARC backup: {}".format(str(e)))
 
-	def backup_del_sf(self, vCurrCounty, CurrDate, dictCounty):
+	def backup_del_sf(self, curr_county, curr_date, dictCounty):
 		try:
-			currcountyname = dictCounty[vCurrCounty]
-			str1 = "CREATE TABLE C##LPIS_ARCHIVE.PPEN_DEL_{}_{} TABLESPACE IMAGERY_UPLOAD AS SELECT * FROM C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL".format(currcountyname, CurrDate)
+			currcountyname = dictCounty[curr_county]
+			str1 = "CREATE TABLE C##LPIS_ARCHIVE.PPEN_DEL_{}_{} TABLESPACE IMAGERY_UPLOAD AS SELECT * FROM C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL".format(currcountyname, curr_date)
 			self.update_oracle(str1, self.connection_arch)
-			self.flog("CREATE PPEN_DEL_{}_{}".format(currcountyname, CurrDate))
+			self.flog("CREATE PPEN_DEL_{}_{}".format(currcountyname, curr_date))
 		except Exception as e:
 			self.flog("ERR - create POC EXCL backup: {}".format(str(e)))
 			print("ERR - create POC EXCL backup: {}".format(str(e)))
@@ -344,9 +341,9 @@ class OracleOperation:
 			self.update_oracle(str1, self.connection_cdtc)
 			self.flog("Create table/view: {}".format(viewname))
 
-			Meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM_2157', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
-				viewname)
-			#db.updateOracle(Meta, connection_CDTC)
+			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM_2157', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  " \
+					 "MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(viewname)
+			#db.updateOracle(v_meta, connection_CDTC)
 			self.flog("CREATE META on: " + viewname)
 
 		except Exception as e:
