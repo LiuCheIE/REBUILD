@@ -40,9 +40,12 @@ class OracleOperation:
 	def flog(self, loginfo):
 		# with open("U:\FME_LIVE\FULL\LOGS\LPIS_CLEAN_LOG.txt", 'a') as f:
 		with open("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/LOGS/LPIS_CLEAN_LOG.txt", 'a') as f: 				# in geo4
-			username = getpass.getuser()
-			curr_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-			f.write(curr_date + " | " + username + " | " + loginfo + "\n")
+			if "META" in loginfo:
+				pass
+			else:
+				username = getpass.getuser()
+				curr_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+				f.write(curr_date + " | " + username + " | " + loginfo + "\n")
 
 			f.close()
 
@@ -377,13 +380,13 @@ class OracleOperation:
 
 			str3 = "TRUNCATE TABLE TDLP_SUB_FEATURE_WEEKC "
 			self.update_oracle(str3, self.connection_cdtc)
-			self.flog("TRUNCATE TABLE: {}".format(tablename))
+			self.flog("TRUNCATE TABLE: TDLP_SUB_FEATURE_WEEKC")
 
 			str4 = "INSERT INTO TDLP_SUB_FEATURE_WEEKC  select T.* FROM TDLP_SUB_FEATURE{} T where end_date > sysdate AND T.GEOM.sdo_gtype  IN (2003) ".format(ref_db)
 			self.update_oracle(str4, self.connection_cdtc)
 			self.flog("INSERT DATA INTO TABLE: TDLP_SUB_FEATURE_WEEKC ")
 
-			#db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/0_0_EXPORT_Z_TDLP_SUBFEAT_WEEKC.bat")
+			self.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/0_0_EXPORT_Z_TDLP_SUBFEAT_WEEKC.bat")
 			self.flog("EXPORT TDLP_SUB_FEATURE_WEEKC_shp - COMPLETE* ")
 
 		except Exception as e:
