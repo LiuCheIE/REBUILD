@@ -236,52 +236,59 @@ class OracleOperation:
 					self.update_oracle(str1, self.connection_cdtc)
 
 	def create_local_table(self, tablename):
-		try:
-			self.update_oracle("DROP TABLE {} PURGE".format(tablename), self.connection_cdtc)
-			self.flog("DROP TABLE {}".format(tablename))
-			str1 = "CREATE TABLE {} AS  SELECT  HERD_NO, SPH_SPS_HOLDING_ID, PARCEL_ID, LNU, AREA_ID, LNU_GROSS_AREA, " \
-				   "CRP_TYPE, CALC_AREA, SUB_DIV_NO, SLU_CCM_ID, GEOM, VALIDATED, CHNG_NO, ALLOCATED_TO, VALIDATED_DATE, " \
-				   "RE_VAL_ALLOC, RE_VAL_DATE, RE_VAL_RESULT, RE_VAL_COMMENT, PARC_STATUS, PARC_REVIEW, REVIEW_COMMENT, " \
-				   "PARC_SPLIT, FORESTRY_CN, MD, MD_REASON, FAD, FAD_REASON, INACTIVE, INACTIVE_REASON, ORIG_PARC_ID, " \
-				   "PARC_MERGE, RE_VAL_DROPDOWN, ENT_TOL_COMMENT, END_DATE, EXTRACT_COUNTY, CURRENT_TIMESTAMP AS EXTRACT_DATE FROM C##POC.POC_PROG_PARC_NEW".format(tablename)
-			self.update_oracle(str1, self.connection_cdtc)
-			self.flog("CREATE TABLE {}".format(tablename))
+		str0 = "DROP TABLE {} PURGE".format(tablename)
+		str0log = "DROP TABLE {}".format(tablename)
+		str1 = "CREATE TABLE {} AS  SELECT  HERD_NO, SPH_SPS_HOLDING_ID, PARCEL_ID, LNU, AREA_ID, LNU_GROSS_AREA, " \
+			   "CRP_TYPE, CALC_AREA, SUB_DIV_NO, SLU_CCM_ID, GEOM, VALIDATED, CHNG_NO, ALLOCATED_TO, VALIDATED_DATE, " \
+			   "RE_VAL_ALLOC, RE_VAL_DATE, RE_VAL_RESULT, RE_VAL_COMMENT, PARC_STATUS, PARC_REVIEW, REVIEW_COMMENT, " \
+			   "PARC_SPLIT, FORESTRY_CN, MD, MD_REASON, FAD, FAD_REASON, INACTIVE, INACTIVE_REASON, ORIG_PARC_ID, " \
+			   "PARC_MERGE, RE_VAL_DROPDOWN, ENT_TOL_COMMENT, END_DATE, EXTRACT_COUNTY, CURRENT_TIMESTAMP AS EXTRACT_DATE FROM C##POC.POC_PROG_PARC_NEW".format(tablename)
+		str1log = "CREATE TABLE {}".format(tablename)
 
-			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
-				tablename)
-			# db.updateOracle(v_meta, connection_CDTC)
-			self.flog("CREATE META " + tablename)
 
-			Spatialindex = "CREATE INDEX SPX_POC_PROG_PARC_NEW_DEL ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(tablename)
-			self.update_oracle(Spatialindex, self.connection_cdtc)
-			self.flog("CREATE INDEX SPX " + tablename)
+		v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
+			tablename)
+		v_metalog = "CREATE META {}".format(tablename)
 
-			vIndexParc = "CREATE INDEX PPPND_PARC_INX ON POC_PROG_PARC_NEW_DEL (PARCEL_ID)"
-			self.update_oracle(vIndexParc, self.connection_cdtc)
+		spatial_index = "CREATE INDEX SPX_POC_PROG_PARC_NEW_DEL ON {}(GEOM)  INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(tablename)
+		spatial_indexlog = "CREATE INDEX SPX {}".format(tablename)
 
-			self.flog("01_COPY LIVE TABLES TO LPIS_CDTC TO USE AS BASE - COMPLETE")
-		except Exception as e:
-			self.flog("ERR - createLocalTable: {}".format(str(e)))
+		vindex_parc = "CREATE INDEX PPPND_PARC_INX ON POC_PROG_PARC_NEW_DEL (PARCEL_ID)"
+		vindex_parclog = "01_COPY LIVE TABLES TO LPIS_CDTC TO USE AS BASE - COMPLETE"
+
+		str_dict = {str0: str0log, str1: str1log, v_meta: v_metalog, spatial_index: spatial_indexlog, vindex_parc: vindex_parclog}
+		for i in str_dict.keys():
+			try:
+				self.update_oracle(i, self.connection_cdtc)
+				self.flog(str(str_dict[i]))
+			except Exception as e:
+				print(e)
+				self.flog(" ****************  Error: {} ****************".format(str(str_dict[i])))
+				pass
 
 	def create_local_table_excl(self, tablename):
 		try:
-			#db.updateOracle("DROP TABLE {} PURGE".format(tablename), connection_CDTC)
-			self.flog("DROP TABLE {}".format(tablename))
+			str0 = "DROP TABLE {} PURGE".format(tablename)
+			str0log = "DROP TABLE {}".format(tablename)
 			str1 = "CREATE TABLE {} AS  SELECT LNU_PARCEL_ID, LNU, EXCLUSION_NUM, PERCENT_EXCL_IN_AREA, EFF_AREA, " \
 				   "EXCL_TYPE, COUNTY, COUNTY_LETTER, Q__COL3, DESCRIPTION, M_AREA, VALIDATED_EX, CHNG_NO, ALLOCATED_TO, " \
 				   "GEOM, VAL_RES, VAL_DESC, VALIDATED_DATE, M_AREA_NEW, REVIEW, REVIEW_COMMENT, FEAT_TYPE, RE_VAL_EX_DROPDOWN FROM C##POC.POC_PROG_EXCL_NEW".format(tablename)
-			self.update_oracle(str1, self.connection_cdtc)
-			self.flog("CREATE TABLE {}".format(tablename))
+			str1log = "CREATE TABLE {}".format(tablename)
 
-			Meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
+			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(
 				tablename)
-			#db.updateOracle(Meta, connection_CDTC)
-			self.flog("CREATE META " + tablename)
-
-			Spatialindex = "CREATE INDEX SPX_POC_PROG_EXCL_NEW_DEL ON {}(GEOM) INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(tablename)
-			self.update_oracle(Spatialindex, self.connection_cdtc)
-			self.flog("CREATE INDEX SPX " + tablename)
-
+			v_metalog = "CREATE META {}".format(tablename)
+			spatial_index = "CREATE INDEX SPX_POC_PROG_EXCL_NEW_DEL ON {}(GEOM) INDEXTYPE IS MDSYS.SPATIAL_INDEX PARAMETERS('sdo_indx_dims=2')".format(tablename)
+			spatial_indexlog = "CREATE INDEX SPX ON {}".format(tablename)
+			str_dict = {str0: str0log, str1: str1log, v_meta: v_metalog, spatial_index: spatial_indexlog}
+			for i in str_dict.keys():
+				try:
+					self.update_oracle(i, self.connection_cdtc)
+					self.flog(str(str_dict[i]))
+				except Exception as e:
+					print(e)
+					self.flog(" ****************  Error: {} ****************".format(str(str_dict[i])))
+					pass
 			self.flog("01_COPY LIVE TABLES TO LPIS_CDTC TO USE AS BASE EXCL - COMPLETE")
 		except Exception as e:
 			self.flog("ERR - createLocalTable: {}".format(str(e)))
@@ -338,13 +345,21 @@ class OracleOperation:
 				   "WHERE LPAD(PARCEL_ID,1) in  ('{}')  OR LPAD(HERD_NO,1)  in  ('{}')  OR EXTRACT_COUNTY in '{}' " \
 				   "OR FORESTRY_CN IN (select FORESTRY_CONTRACT_NO from C##LPIS_CDTC.FOR_CONTROL) " \
 				   "OR PARCEL_ID IN (select LNU_PARCEL_ID from C##LPIS_CDTC.CONTROL_LIST) ".format(viewname, cc.vCurrCounty, cc.vCurrCounty, dictCounty[vCurrCounty])
-			self.update_oracle(str1, self.connection_cdtc)
-			self.flog("Create table/view: {}".format(viewname))
+			str1log = "Create table/view: {}".format(viewname)
 
 			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM_2157', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  " \
 					 "MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(viewname)
-			#db.updateOracle(v_meta, connection_CDTC)
-			self.flog("CREATE META on: " + viewname)
+			v_metalog = "CREATE META on: {}".format(viewname)
+			str_dict = {str1: str1log, v_meta: v_metalog}
+			for i in str_dict.keys():
+				try:
+					self.update_oracle(i, self.connection_cdtc)
+					self.flog(str(str_dict[i]))
+				except Exception as e:
+					print(e)
+					self.flog(" ****************  Error: {} ****************".format(str(str_dict[i])))
+					pass
+
 
 		except Exception as e:
 			self.flog("ERR - create Curr County View: {}".format(str(e)))
