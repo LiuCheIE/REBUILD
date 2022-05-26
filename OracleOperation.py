@@ -5,13 +5,11 @@ from config_para import config_POC
 from config_para import config_ARCH
 from config_para import config_WEEKC
 from config_para import config_county as cc
-from sys import modules
 from datetime import datetime
 import getpass
-from datetime import date
 import subprocess
-import time
 from functools import wraps
+from sys import modules
 
 
 class OracleOperation:
@@ -40,7 +38,7 @@ class OracleOperation:
 	def flog(self, loginfo):
 		# with open("U:\FME_LIVE\FULL\LOGS\LPIS_CLEAN_LOG.txt", 'a') as f:
 		with open("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/LOGS/LPIS_CLEAN_LOG.txt", 'a') as f: 				# in geo4
-			if "META" in loginfo:
+			if "META" in loginfo or "INDEX" in loginfo:
 				pass
 			else:
 				username = getpass.getuser()
@@ -114,12 +112,12 @@ class OracleOperation:
 		connection.commit()
 		print("Update succesful")
 
-	def create_county_shape(self):
+	def create_county_shape(self, array_country):
 		array_index = 1
 		diss_type = 6
-		array_len = len(cc.arrayc)
+		array_len = len(array_country)
 		add_to_all_counties_table = True
-		for i in cc.arrayc:
+		for i in array_country:
 			if array_index == 1:
 				self.update_oracle("TRUNCATE TABLE POC_TOWNLANDS_CURR_DIS_DEL", self.connection_cdtc)
 				self.update_oracle("TRUNCATE TABLE POC_TOWNLANDS_CURR_DIS", self.connection_cdtc)
@@ -322,9 +320,9 @@ class OracleOperation:
 		except Exception as e:
 			self.flog("ERR - create Local EXCL POC Table: {}".format(str(e)))
 
-	def backup_del(self, curr_county, curr_date, dictCounty):
+	def backup_del(self, curr_county, curr_date, dict_county):
 		try:
-			currcountyname = dictCounty[curr_county]
+			currcountyname = dict_county[curr_county]
 			str1 = "CREATE TABLE C##LPIS_ARCHIVE.PPPN_DEL_{}_{} TABLESPACE IMAGERY_UPLOAD AS SELECT * FROM C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL".format(currcountyname, curr_date)
 			self.update_oracle(str1, self.connection_arch)
 			self.flog("CREATE PPPN_DEL_{}_{}".format(currcountyname, curr_date))
@@ -332,9 +330,9 @@ class OracleOperation:
 			self.flog("ERR - create POC PARC backup: {}".format(str(e)))
 			print("ERR - create POC PARC backup: {}".format(str(e)))
 
-	def backup_del_sf(self, curr_county, curr_date, dictCounty):
+	def backup_del_sf(self, curr_county, curr_date, dict_county):
 		try:
-			currcountyname = dictCounty[curr_county]
+			currcountyname = dict_county[curr_county]
 			str1 = "CREATE TABLE C##LPIS_ARCHIVE.PPEN_DEL_{}_{} TABLESPACE IMAGERY_UPLOAD AS SELECT * FROM C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL".format(currcountyname, curr_date)
 			self.update_oracle(str1, self.connection_arch)
 			self.flog("CREATE PPEN_DEL_{}_{}".format(currcountyname, curr_date))
@@ -342,12 +340,12 @@ class OracleOperation:
 			self.flog("ERR - create POC EXCL backup: {}".format(str(e)))
 			print("ERR - create POC EXCL backup: {}".format(str(e)))
 
-	def create_curr_cnty_parc_view(self, viewname, dictCounty, vCurrCounty):
+	def create_curr_cnty_parc_view(self, viewname, dict_county, v_curr_county):
 		try:
 			str1 = "CREATE or replace VIEW {} AS  SELECT * FROM POC_PROG_PARC_NEW_DEL  " \
 				   "WHERE LPAD(PARCEL_ID,1) in  ('{}')  OR LPAD(HERD_NO,1)  in  ('{}')  OR EXTRACT_COUNTY in '{}' " \
 				   "OR FORESTRY_CN IN (select FORESTRY_CONTRACT_NO from C##LPIS_CDTC.FOR_CONTROL) " \
-				   "OR PARCEL_ID IN (select LNU_PARCEL_ID from C##LPIS_CDTC.CONTROL_LIST) ".format(viewname, cc.vCurrCounty, cc.vCurrCounty, dictCounty[vCurrCounty])
+				   "OR PARCEL_ID IN (select LNU_PARCEL_ID from C##LPIS_CDTC.CONTROL_LIST) ".format(viewname, cc.v_curr_county, cc.v_curr_county, dict_county[v_curr_county])
 			str1log = "Create table/view: {}".format(viewname)
 
 			v_meta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM_2157', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  " \
@@ -393,7 +391,31 @@ class OracleOperation:
 			self.flog(str(e))
 
 	def refresh_working_table(self):
-		pass
+		v_county = cc.v_curr_county
+		firstRun = cc.firstRun
+		county_name = dict(v_county)
+		str1 = 'TRUNCATE TABLE C##LPIS_TRANSFORM.TDLP_PARCELS_TEST9E'
+		str1log = "TRUNCATE TABLE C##LPIS_TRANSFORM.TDLP_PARCELS_TEST9E"
+		self.update_oracle(str1, self.connection)
+		self.flog(str1log)
+
+		if firstRun is False:
+			str2 = "INSERT INTO C##LPIS_TRANSFORM.TDLP_PARCELS_TEST9E (GID, HERD_NO, SPH_SPS_HOLDING_ID, " \
+				   "PARCEL_ID, LNU, MD_PERCENT, MD_REASON, FAD_PERCENT, FAD_REASON, ACTIVE_PARCELS, NON_ACTIVE_REASON, " \
+				   "CREATE_DATE, END_DATE, GEOM_2157)SELECT GID, HERD_NO, SPH_SPS_HOLDING_ID, PARCEL_ID, LNU, MD_PERCENT, " \
+				   "MD_REASON, FAD_PERCENT, FAD_REASON, ACTIVE_PARCELS, NON_ACTIVE_REASON, " \
+				   "CREATE_DATE, END_DATE, GEOM_2157 FROM TDLP_PARCELS_{}".format(county_name)
+			str2log = "INSERT INTO TDLP_PARCELS_TEST9E FROM TDLP_PARCELS_{}".format(county_name)
+			try:
+				self.update_oracle(str2, self.connection)
+				self.flog(str2log)
+			except Exception as e:
+				self.flog("ERR: INSERT INTO C##LPIS_TRANSFORM.TDLP_PARCELS_TEST9E: {}".format(str(e)))
+
+		str3 = "TRUNCATE TABLE C##LPIS_TRANSFORM.TDLP_SUB_FEAT_REPAIRED_3"
+		str3log = "TRUNCATE TABLE C##LPIS_TRANSFORM.TDLP_SUB_FEAT_REPAIRED_3"
+		self.update_oracle(str3, self.connection)
+		self.flog(str3log)
 
 	def refresh_pppn_base_table(self):
 		try:
@@ -402,9 +424,9 @@ class OracleOperation:
 			self.flog(del1)
 
 			deliveredWS = "CREATE OR REPLACE VIEW V_DELIVERED_WS AS SELECT GID, HERD_NO, SPH_SPS_HOLDING_ID,PARCEL_ID, " \
-						  "LNU FROM {} WHERE PARCEL_ID = 'WHITESP'".format(cc.DelLouth)
+						  "LNU FROM {} WHERE PARCEL_ID = 'WHITESP'".format(cc.del_louth)
 			deliveredforestry = "CREATE OR REPLACE VIEW V_DELIVERED_FORESTRY AS SELECT GID, HERD_NO, SPH_SPS_HOLDING_ID,PARCEL_ID, " \
-						  "LNU FROM {} WHERE LNU IN (SELECT LNU FROM POC_PROG_PARC_NEW_DEL WHERE FORESTRY_CN <> 'X' and PARC_STATUS = 'X')".format(cc.DelLouth)
+						  "LNU FROM {} WHERE LNU IN (SELECT LNU FROM POC_PROG_PARC_NEW_DEL WHERE FORESTRY_CN <> 'X' and PARC_STATUS = 'X')".format(cc.del_louth)
 
 			for i in cc.arraydel:
 				deliveredWS = deliveredWS + "UNION SELECT GID, HERD_NO, SPH_SPS_HOLDING_ID,PARCEL_ID, " \
@@ -421,7 +443,7 @@ class OracleOperation:
 			self.flog("CREATE OR REPLACE VIEW V_DELIVERED_FORESTRY")
 
 			deliveredcountyshape = "CREATE OR REPLACE VIEW V_DELIVERED_COUNTIES AS SELECT SUBSTR(LABEL,1,1) AS COUNTY " \
-								   "FROM C##LPIS_CDTC.POC_TOWNLANDS_CURR_DIS_DEL WHERE SUBSTR(LABEL,1,1) IN {}".format(cc.countyDelivered)
+								   "FROM C##LPIS_CDTC.POC_TOWNLANDS_CURR_DIS_DEL WHERE SUBSTR(LABEL,1,1) IN {}".format(cc.county_delivered)
 
 			self.update_oracle(deliveredcountyshape, self.connection_cdtc)
 			self.flog("CREATE OR REPLACE VIEW V_DELIVERED_COUNTIES")
@@ -681,7 +703,7 @@ class OracleOperation:
 
 		str3 = "DROP TABLE POC_BEST_ORTHO_GRID_CURR PURGE"
 		str3log = "DROP TABLE POC_BEST_ORTHO_GRID_CURR"
-		array1Str = "('{}')".format(cc.vCurrCounty)
+		array1Str = "('{}')".format(cc.v_curr_county)
 		twn_tab_Create = "POC_BEST_ORTHO_GRID_CURR"
 		str4 = "CREATE TABLE C##LPIS_CDTC.POC_BEST_ORTHO_GRID_CURR AS  SELECT *  FROM C##LPIS_TRANSFORM.BEST_ORTHO_GRID_500 c " \
 			   "WHERE SDO_ANYINTERACT(c.geom_2157, (SELECT SDO_AGGR_UNION(SDOAGGRTYPE(GEOM , 0.0005))  " \
@@ -937,4 +959,5 @@ class OracleOperation:
 				self.flog("FME: {} failed to run!".format(numcode))
 		except Exception as e:
 			print(e)
-			self.flog(e)
+			self.flog(str(e))
+

@@ -8,23 +8,23 @@ if __name__ == '__main__':
 	try:
 		db = orac.OracleOperation()
 		db.flog("---------------------START----------------------")
-		dictCounty = dict()
-		cc.countyCodeDict(dictCounty)
-		print(dictCounty)
+		dict_county = dict()
+		cc.countyCodeDict(dict_county)
+		print(dict_county)
 
 		db.delete_sf_temp()
-		db.create_county_shape()								   #Create shapes for current and delivered counties by dissolving townlands/deds
+		db.create_county_shape(cc.array_country)				#Create shapes for current and delivered counties by dissolving townlands/deds
 
 		db.create_local_table("POC_PROG_PARC_NEW_DEL")   		#Createa copy of the poc parcel table on LPIS_CDTC
 		db.create_local_table_excl("POC_PROG_EXCL_NEW_DEL")       #Createa copy of the poc excl tables on LPIS_CDTC
 
-		db.backup_del(cc.vCurrCounty, cc.CurrDate, dictCounty)					#Createa backup of the poc PARC table on ARCHIVE
-		db.backup_del_sf(cc.vCurrCounty, cc.CurrDate, dictCounty)					#Createa backup of the poc EXCL table on ARCHIVE
+		db.backup_del(cc.v_curr_county, cc.curr_date, dict_county)					#Createa backup of the poc PARC table on ARCHIVE
+		db.backup_del_sf(cc.v_curr_county, cc.curr_date, dict_county)					#Createa backup of the poc EXCL table on ARCHIVE
 
-		db.create_curr_cnty_parc_view("V_CURR_COUNTY_PARCS", dictCounty, cc.vCurrCounty)		#CREATE A VIEW OF CURRENT COUNTY FROM CURR DISOLVE +  FORESTRY    V_CURR_COUNTY_PARCS
+		db.create_curr_cnty_parc_view("V_CURR_COUNTY_PARCS", dict_county, cc.v_curr_county)		#CREATE A VIEW OF CURRENT COUNTY FROM CURR DISOLVE +  FORESTRY    V_CURR_COUNTY_PARCS
 
 		db.create_weekc_on_cdtc("TDLP_PARCEL_WEEKC", cc.ref_db)			#Create TDLP_PARCEL_WEEKC table on geo3 to use as base for delivered data. Which to use determined from above. Also create TDLP_SUB_FEATURE_WEEKC
-
+		db.refresh_working_table()
 		db.refresh_pppn_base_table()
 		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/0_1_A_SYNC_DEVC_AND_TO_DEL.bat")
 		db.check_fme_run(905)
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 		db.flog("7_COMBINE_SNAPPED_AND_NON_INTERSECT -    Complete")
 		db.check_fme_run(7)
 
-		db.create_curr_county_townlands("POC_REAL_TOWNLANDS_CURR", cc.vCurrCounty)
+		db.create_curr_county_townlands("POC_REAL_TOWNLANDS_CURR", cc.v_curr_county)
 
 		db.add_delivered("TDLP_PARC_REPAIRED4", "TDLP_PARCELS_TEST9E")
 		db.flog("92_INSERT_DELIVERED_INCL_WS_INTO_PARCS - Complete")
@@ -254,7 +254,6 @@ if __name__ == '__main__':
 
 		db.test9e_from9e1("TDLP_PARCELS_TEST9E")
 		db.flog("test9efrom9e1")
-
 
 		if db.connection:
 			db.connection.close()
