@@ -1,8 +1,7 @@
 from datetime import date
 
 
-array_country = ["O", "Q", "R", "B", "N", "L", "F", "I", "X", "U", "A", "Z", "K", "S", "T", "J", "P", "M", "E", "D", "H", "W",
-          "Y", "V"]
+array_country = ["O", "Q", "R", "B", "N", "L", "F", "I", "X", "U", "A", "Z", "K", "S", "T", "J", "P", "M", "E", "D", "H", "W", "Y", "V"]
 v_county = "V"
 v_curr_county = "V"
 county_delivered = ("O", "Q", "R", "B", "N", "L", "F", "I", "X", "U", "A", "Z", "K", "S", "T", "J", "P", "M", "E", "D", "H", "W", "Y")
@@ -51,7 +50,7 @@ arraydel = [del_meath, del_monaghan, del_cavan, del_longford, del_leitrim, del_m
             del_limerick, del_donegal, del_cork, del_kerry, del_waterford, del_wexford]
 
 
-def countyCodeDict(dict_county):
+def county_code_dict(dict_county):
     dict_county["A"] = "CARLOW"
     dict_county["B"] = "CAVAN"
     dict_county["C"] = "CLARE"
