@@ -390,10 +390,8 @@ class OracleOperation:
 		except Exception as e:
 			self.flog(str(e))
 
-	def refresh_working_table(self):
-		v_county = cc.v_curr_county
+	def refresh_working_table(self, county_name):
 		firstRun = cc.firstRun
-		county_name = dict(v_county)
 		str1 = 'TRUNCATE TABLE C##LPIS_TRANSFORM.TDLP_PARCELS_TEST9E'
 		str1log = "TRUNCATE TABLE C##LPIS_TRANSFORM.TDLP_PARCELS_TEST9E"
 		self.update_oracle(str1, self.connection)
@@ -596,7 +594,7 @@ class OracleOperation:
 			   "AS CREATE_DATE,'31-DEC-99' AS END_DATE,FAD AS FAD_PERCENT,      FAD_REASON,  HERD_NO as forestry_cn,LNU AS LNU,MD AS " \
 			   "MD_PERCENT,MD_REASON AS MD_REASON,  INACTIVE_REASON AS NON_ACTIVE_REASON,PARCEL_ID AS PARCEL_ID, SPH_SPS_HOLDING_ID " \
 			   "AS SPH_SPS_HOLDING_ID,GEOM AS GEOM_2157      from poc_prog_parc_new_DEL_CL      where PARCEL_ID = 'WHITESP'"
-		str2log = "INSERT TABLE TEMP TBL_TRANSFORM_PARC_NEXT_TEMP"
+		str2log = "INSERT INTO TEMP TBL_TRANSFORM_PARC_NEXT_TEMP"
 
 		str3 = "insert into TBL_TRANSFORM_PARC_NEXT_TEMP SELECT GID + ( select max(lps_gid) from poc_prog_parc_new_DEL_CL) as GID, " \
 			   "ACTIVE_PARCELS,CREATE_DATE,END_DATE,FAD_PERCENT,FAD_REASON, FORESTRY_CN,LNU,MD_PERCENT,MD_REASON,NON_ACTIVE_REASON," \
@@ -609,13 +607,13 @@ class OracleOperation:
 		str4log = "CREATE TABLE TEMP TBL_TRANSFORM_PARC_NEXT"
 
 		str5 = "DROP TABLE TBL_TRANSFORM_PARC_NEXT_TEMP"
-		str5log = "DROP TABLE TBL_TRANSFORM_PARC_NEXT_TEMP {}".format(tablename)
+		str5log = "DROP TABLE {}".format(tablename)
 		str6 = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (GID)"
-		str6log = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (GID)".format(tablename)
+		str6log = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (GID)"
 		str7 = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX2 ON TBL_TRANSFORM_PARC_NEXT (PARCEL_ID)"
-		str7log = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (PARCEL_ID)".format(tablename)
+		str7log = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (PARCEL_ID)"
 		str8 = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX3 ON TBL_TRANSFORM_PARC_NEXT (LNU)"
-		str8log = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (LNU)".format(tablename)
+		str8log = "CREATE INDEX TBL_TRANSFORM_PARC_NEXT_IDX1 ON TBL_TRANSFORM_PARC_NEXT (LNU)"
 
 		vmeta = "INSERT INTO USER_SDO_GEOM_METADATA VALUES ('{}', 'GEOM_2157', MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X',418829.965,786046.9273,0.005),  " \
 			   "MDSYS.SDO_DIM_ELEMENT('Y',511786.6808,964701.5937,0.005)), 2157)".format(tablename)
@@ -628,7 +626,7 @@ class OracleOperation:
 			   "GID2, ACTIVE_PARCELS, CREATE_DATE, END_DATE, FAD_PERCENT, FAD_REASON, FORESTRY_CN, GEOM_2157, LNU, MD_PERCENT, " \
 			   "MD_REASON, NON_ACTIVE_REASON, PARCEL_ID, SPH_SPS_HOLDING_ID from TBL_TRANSFORM_PARC_NEXT  a  where a.rowid >= " \
 			   "any (select b.rowid from TBL_TRANSFORM_PARC_NEXT b where a.gid = b.gid) AND GID = 0"
-		str9log = "INSERT INTO TBL_TRANSFORM_PARC_NEXT {}".format(tablename)
+		str9log = "INSERT INTO {}".format(tablename)
 
 		str10 = "DELETE FROM TBL_TRANSFORM_PARC_NEXT WHERE GID = 0"
 		str10log = "DELETE FROM TBL_TRANSFORM_PARC_NEXT WHERE GID = 0 {}".format(tablename)
@@ -755,7 +753,7 @@ class OracleOperation:
 			   "b where a.gid = b.gid )  AND PARCEL_ID = 'WHITESP' ".format(tablename, tablename, tablename, tablename)
 		str1log = "INSERT INTO {} NEXT GID FOR DUPLICATE WS".format(tablename)
 
-		str2 = " DELETE FROM {} a WHERE a.rowid > any (SELECT b.rowi FROM {} b WHERE a.gid = b.gid) AND PARCEL_ID = 'WHITESP' ".format(tablename, tablename)
+		str2 = " DELETE FROM {} a WHERE a.rowid > any (SELECT b.rowid FROM {} b WHERE a.gid = b.gid) AND PARCEL_ID = 'WHITESP' ".format(tablename, tablename)
 		str2log = "DELETE DUPLICATE ID'S {}".format(tablename)
 
 		str_dict = {str1: str1log, str2: str2log}
@@ -942,7 +940,7 @@ class OracleOperation:
 			print(e)
 			self.flog(" ****************  Error: {} ****************".format(str(e)))
 
-	def check_fme_run(self,numcode):
+	def check_fme_run(self, numcode):
 		try:
 			str1 = " SELECT WS_NAME FROM FME_WORKSPACES WHERE WS_NUM = {}".format(numcode)
 			fmecodes = self.connection_cdtc.cursor().execute(str1).fetchall()
@@ -953,10 +951,10 @@ class OracleOperation:
 					self.flog("FME: {} {} successful to run!".format(fmecodes[0], numcode))
 				else:
 					print("FME: {} failed to run!".format(numcode))
-					self.flog("FME: {} failed to run!".format(numcode))
+					self.flog(" ****************  Error: **************** FME: {} failed to run!".format(numcode))
 			else:
 				print("FME: {} failed to run!".format(numcode))
-				self.flog("FME: {} failed to run!".format(numcode))
+				self.flog(" ****************  Error: **************** FME: {} failed to run!".format(numcode))
 		except Exception as e:
 			print(e)
 			self.flog(str(e))

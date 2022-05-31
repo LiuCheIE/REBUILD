@@ -9,33 +9,50 @@ if __name__ == '__main__':
 		db = orac.OracleOperation()
 		db.flog("---------------------START----------------------")
 		dict_county = dict()
-		cc.countyCodeDict(dict_county)
+		cc.county_code_dict(dict_county)
 		print(dict_county)
 
+		## Create shapes for current and delivered counties by dissolving townlands/deds
 		db.delete_sf_temp()
-		db.create_county_shape(cc.array_country)				#Create shapes for current and delivered counties by dissolving townlands/deds
+		db.create_county_shape(cc.array_country)
+		v_county_name = dict_county[cc.v_curr_county]
+		print(v_county_name)
 
-		db.create_local_table("POC_PROG_PARC_NEW_DEL")   		#Createa copy of the poc parcel table on LPIS_CDTC
-		db.create_local_table_excl("POC_PROG_EXCL_NEW_DEL")       #Createa copy of the poc excl tables on LPIS_CDTC
+		## Createa copy of the poc parcel table on LPIS_CDTC
+		db.create_local_table("POC_PROG_PARC_NEW_DEL")
+		## Createa copy of the poc excl tables on LPIS_CDTC
+		db.create_local_table_excl("POC_PROG_EXCL_NEW_DEL")
 
-		db.backup_del(cc.v_curr_county, cc.curr_date, dict_county)					#Createa backup of the poc PARC table on ARCHIVE
-		db.backup_del_sf(cc.v_curr_county, cc.curr_date, dict_county)					#Createa backup of the poc EXCL table on ARCHIVE
+		## Create backup of the poc EXCL table on ARCHIVE
+		db.backup_del(cc.v_curr_county, cc.curr_date, dict_county)
+		db.backup_del_sf(cc.v_curr_county, cc.curr_date, dict_county)
 
-		db.create_curr_cnty_parc_view("V_CURR_COUNTY_PARCS", dict_county, cc.v_curr_county)		#CREATE A VIEW OF CURRENT COUNTY FROM CURR DISOLVE +  FORESTRY    V_CURR_COUNTY_PARCS
+		## CREATE A VIEW OF CURRENT COUNTY FROM CURR DISOLVE +  FORESTRY    V_CURR_COUNTY_PARCS
+		db.create_curr_cnty_parc_view("V_CURR_COUNTY_PARCS", dict_county, cc.v_curr_county)
 
-		db.create_weekc_on_cdtc("TDLP_PARCEL_WEEKC", cc.ref_db)			#Create TDLP_PARCEL_WEEKC table on geo3 to use as base for delivered data. Which to use determined from above. Also create TDLP_SUB_FEATURE_WEEKC
-		db.refresh_working_table()
+		## Create TDLP_PARCEL_WEEKC table on geo3 to use as base for delivered data. Which to use determined from above. Also create TDLP_SUB_FEATURE_WEEKC
+		db.create_weekc_on_cdtc("TDLP_PARCEL_WEEKC", cc.ref_db)
+
+		## refresh test9e and rep3 table, and insert 1st delivered table if this is 2nd run
+		db.refresh_working_table(v_county_name)
+		## refresh POC_PROG_PARC_NEW_DEL and EXCL table in CDTC
 		db.refresh_pppn_base_table()
+
+		## POC_PROG_PARC_NEW_DEL2
 		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/0_1_A_SYNC_DEVC_AND_TO_DEL.bat")
 		db.check_fme_run(905)
 
+		## Remove delivered parcels
 		db.remove_delivered()
 
+		## Compare the difference between DEL2 and POC,and update its geom in DEL2
 		db.compare_del()
 
+		## Spatial validation for C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL2
 		db.oracle_spatial_geom("C##LPIS_CDTC.POC_PROG_PARC_NEW_DEL2", "GEOM", "ROW_GID")
 		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/0_1_FILTER_FROM_PPPND_CREATE_PPPEN_COMB_AND_PPPN_PARC_NX_AND_VCLEAN_SHP_RE_RUN.bat")
 		db.check_fme_run(910)
+
 
 		db.flog("PRE VCLEAN - START")
 		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/3_PYTHON/Python_Scripts/VClean3_PRE_BAT.bat")
@@ -73,7 +90,7 @@ if __name__ == '__main__':
 		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/4__VCLEAN_SHP_ORCSP_RERUN.bat")															#Cleaned shp data to Oracle TDLP_PARC_REPAIRED2
 		db.check_fme_run(4)
 
-		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/5_BREAK_REPAIR_TO_INTERSECT_AND_NON_INTERSECT_DELIVERED - Copy_RERUN.bat")				#Copy, also create shpfile for us in python bat
+		db.fmerun("//sdbahgeo2/GISDEV/TRANSFORMED_PARCELS/FME_LIVE/FULL/Process/5_BREAK_REPAIR_TO_INTERSECT_AND_NON_INTERSECT_DELIVERED_RERUN.bat")				#Copy, also create shpfile for us in python bat
 		db.flog("5_BREAK_REPAIR_TO_INTERSECT_AND_NON_INTERSECT_DELIVERED -    Complete")
 		db.check_fme_run(5)
 
